@@ -168,6 +168,10 @@
     </div>
 
     <script>
+        // --- Game Constants ---
+        const GRID_SIZE = 15; // Reduced from 25 to 15
+        let TILE_SIZE;
+
         // --- DOM Elements ---
         const settingsMenu = document.getElementById('settingsMenu');
         const startButton = document.getElementById('startButton');
@@ -185,10 +189,6 @@
         const messageTitle = document.getElementById('messageTitle');
         const messageText = document.getElementById('messageText');
         const restartButton = document.getElementById('restartButton');
-
-        // --- Game Constants ---
-        const GRID_SIZE = 25;
-        let TILE_SIZE;
 
         // --- Game State ---
         let snake, food, walls, score, direction, changingDirection, gameRunning, gameLoop;
@@ -224,7 +224,7 @@
             canvas.height = TILE_SIZE * GRID_SIZE;
 
             // Reset player state
-            snake = [{ x: 12, y: 12 }];
+            snake = [{ x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) }];
             score = 0;
             direction = { x: 0, y: 0 }; // Start stationary
             changingDirection = false;
@@ -306,7 +306,7 @@
                     wallY = Math.floor(Math.random() * GRID_SIZE);
                 } while (
                     // Avoid spawning on the initial snake position
-                    (wallX === 12 && wallY === 12)
+                    (wallX === Math.floor(GRID_SIZE / 2) && wallY === Math.floor(GRID_SIZE / 2))
                 );
                 walls.push({ x: wallX, y: wallY });
             }
