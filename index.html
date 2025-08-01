@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single-Player Snake Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press-Start-2P', cursive;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            padding: 1rem;
+        }
+        canvas {
+            background-color: #010409;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(46, 164, 79, 0.3);
+            width: 100%;
+            height: auto;
+            aspect-ratio: 1 / 1;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0.5rem;
+            font-size: 0.9rem;
+            color: #8b949e;
+            flex-wrap: wrap;
+        }
+        .info-item {
+            padding: 0 0.5rem;
+        }
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(13, 17, 23, 0.95);
+            padding: 2.5rem;
+            border-radius: 8px;
+            border: 2px solid #30363d;
+            text-align: center;
+            z-index: 10;
+        }
+        .modal h2 {
+            font-size: 2rem;
+            color: #f0f6fc;
+            margin-bottom: 2rem;
+        }
+        .modal button {
+            font-family: 'Press-Start-2P', cursive;
+            background-color: #238636;
+            color: #ffffff;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 1.5rem;
+            width: 100%;
+        }
+        .modal button:hover {
+            background-color: #2ea043;
+        }
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+        .settings-group h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #8b949e;
+        }
+        .settings-group label {
+            margin: 0 0.5rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .settings-group input[type="radio"] {
+            display: none;
+        }
+        .settings-group input[type="radio"]:checked + span {
+            background-color: #238636;
+            border-color: #2ea043;
+            color: #fff;
+        }
+        .settings-group label span {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #30363d;
+        }
+        .name-input {
+            font-family: 'Press-Start-2P', cursive;
+            background-color: #010409;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 0.75rem;
+            border-radius: 6px;
+            width: 100%;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .name-input::placeholder {
+            color: #484f58;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Settings Menu -->
+        <div id="settingsMenu" class="modal">
+            <h2>Game Settings</h2>
+            <div class="settings-group">
+                <input type="text" id="playerNameInput" class="name-input" placeholder="Enter Your Name" maxlength="10">
+            </div>
+            <div class="settings-group">
+                <h3>Speed</h3>
+                <label><input type="radio" name="speed" value="150" checked><span>Slow</span></label>
+                <label><input type="radio" name="speed" value="100"><span>Medium</span></label>
+                <label><input type="radio" name="speed" value="70"><span>Fast</span></label>
+            </div>
+            <div class="settings-group">
+                <h3>Walls</h3>
+                <label><input type="radio" name="level" value="0" checked><span>None</span></label>
+                <label><input type="radio" name="level" value="15"><span>Some</span></label>
+                <label><input type="radio" name="level" value="30"><span>Many</span></label>
+            </div>
+            <button id="startButton">Start Game</button>
+        </div>
+
+        <!-- Game Over Message Box -->
+        <div id="messageBox" class="modal" style="display: none;">
+            <h2 id="messageTitle">GAME OVER</h2>
+            <p id="messageText">Your Score: 0</p>
+            <button id="restartButton">Play Again</button>
+        </div>
+
+        <!-- Game Area -->
+        <div id="gameArea" style="display: none;">
+            <div class="info-panel">
+                <span class="info-item">PLAYER: <span id="playerNameDisplay"></span></span>
+                <span class="info-item">SCORE: <span id="score">0</span></span>
+                <span class="info-item">HIGH SCORE: <span id="highScoreDisplay">0</span></span>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            <div class="text-center mt-4 text-xs text-gray-500">
+                Controls: WASD or Arrow Keys
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const settingsMenu = document.getElementById('settingsMenu');
+        const startButton = document.getElementById('startButton');
+        const playerNameInput = document.getElementById('playerNameInput');
+        
+        const gameArea = document.getElementById('gameArea');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const playerNameDisplay = document.getElementById('playerNameDisplay');
+        const scoreEl = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('highScoreDisplay');
+        
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const restartButton = document.getElementById('restartButton');
+
+        // --- Game Constants ---
+        const GRID_SIZE = 25;
+        let TILE_SIZE;
+
+        // --- Game State ---
+        let snake, food, walls, score, direction, changingDirection, gameRunning, gameLoop;
+        let gameSpeed, wallCount, playerName, highScore;
+
+        // --- Game Initialization ---
+        function showSettings() {
+            gameArea.style.display = 'none';
+            messageBox.style.display = 'none';
+            settingsMenu.style.display = 'block';
+            loadHighScore(); // Load high score to show on settings screen if needed
+        }
+
+        function loadHighScore() {
+            const storedHighScore = JSON.parse(localStorage.getItem('snakeHighScore')) || { name: 'N/A', score: 0 };
+            highScore = storedHighScore;
+            highScoreDisplay.textContent = `${highScore.score} (${highScore.name})`;
+        }
+
+        function startGame() {
+            settingsMenu.style.display = 'none';
+            gameArea.style.display = 'block';
+
+            // Get settings
+            playerName = playerNameInput.value.trim() || 'Player';
+            gameSpeed = parseInt(document.querySelector('input[name="speed"]:checked').value);
+            wallCount = parseInt(document.querySelector('input[name="level"]:checked').value);
+
+            // Setup canvas
+            const containerWidth = canvas.parentElement.clientWidth;
+            TILE_SIZE = Math.floor(containerWidth / GRID_SIZE);
+            canvas.width = TILE_SIZE * GRID_SIZE;
+            canvas.height = TILE_SIZE * GRID_SIZE;
+
+            // Reset player state
+            snake = [{ x: 12, y: 12 }];
+            score = 0;
+            direction = { x: 0, y: 0 }; // Start stationary
+            changingDirection = false;
+            
+            food = {};
+            walls = [];
+            gameRunning = true;
+
+            // Update UI
+            playerNameDisplay.textContent = playerName;
+            scoreEl.textContent = score;
+            loadHighScore();
+
+            generateWalls();
+            generateFood();
+            
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(main, gameSpeed);
+        }
+
+        // --- Main Game Loop ---
+        function main() {
+            if (!gameRunning) return;
+            changingDirection = false;
+            moveSnake();
+            if (checkCollision()) {
+                gameOver();
+                return;
+            }
+            draw();
+        }
+
+        // --- Drawing Functions ---
+        function draw() {
+            ctx.fillStyle = '#010409';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw walls
+            ctx.fillStyle = '#484f58';
+            walls.forEach(wall => {
+                ctx.fillRect(wall.x * TILE_SIZE, wall.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            });
+
+            // Draw snake body
+            ctx.fillStyle = '#2ea043';
+            ctx.strokeStyle = '#0d1117';
+            for (let i = 1; i < snake.length; i++) {
+                ctx.fillRect(snake[i].x * TILE_SIZE, snake[i].y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+
+            // Draw head and food
+            ctx.font = `${TILE_SIZE * 0.9}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('👻', snake[0].x * TILE_SIZE + TILE_SIZE / 2, snake[0].y * TILE_SIZE + TILE_SIZE / 2);
+            ctx.fillText('🍒', food.x * TILE_SIZE + TILE_SIZE / 2, food.y * TILE_SIZE + TILE_SIZE / 2);
+        }
+
+        // --- Game Logic ---
+        function moveSnake() {
+            if (direction.x === 0 && direction.y === 0) return; // Don't move until first keypress
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreEl.textContent = score;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function generateWalls() {
+            walls = []; // Clear previous walls
+            for (let i = 0; i < wallCount; i++) {
+                let wallX, wallY;
+                do {
+                    wallX = Math.floor(Math.random() * GRID_SIZE);
+                    wallY = Math.floor(Math.random() * GRID_SIZE);
+                } while (
+                    // Avoid spawning on the initial snake position
+                    (wallX === 12 && wallY === 12)
+                );
+                walls.push({ x: wallX, y: wallY });
+            }
+        }
+
+        function generateFood() {
+            let foodX, foodY;
+            do {
+                foodX = Math.floor(Math.random() * GRID_SIZE);
+                foodY = Math.floor(Math.random() * GRID_SIZE);
+            } while (
+                snake.some(p => p.x === foodX && p.y === foodY) ||
+                walls.some(w => w.x === foodX && w.y === foodY)
+            );
+            food = { x: foodX, y: foodY };
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            // Wall collision
+            if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) return true;
+            // Obstacle collision
+            if (walls.some(w => w.x === head.x && w.y === head.y)) return true;
+            // Self collision
+            for (let i = 1; i < snake.length; i++) if (head.x === snake[i].x && head.y === snake[i].y) return true;
+            
+            return false;
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            clearInterval(gameLoop);
+
+            if (score > highScore.score) {
+                highScore = { name: playerName, score: score };
+                localStorage.setItem('snakeHighScore', JSON.stringify(highScore));
+            }
+
+            messageTitle.textContent = "GAME OVER";
+            messageText.textContent = `${playerName}'s Score: ${score}`;
+            messageBox.style.display = 'block';
+        }
+
+        // --- Event Listeners ---
+        function handleKeyDown(e) {
+            if (changingDirection || !gameRunning) return;
+            
+            const keyPressed = e.key;
+            const goingUp = direction.y === -1, goingDown = direction.y === 1;
+            const goingLeft = direction.x === -1, goingRight = direction.x === 1;
+
+            if ((keyPressed.toLowerCase() === "w" || keyPressed === "ArrowUp") && !goingDown) {
+                direction = { x: 0, y: -1 };
+                changingDirection = true;
+            } else if ((keyPressed.toLowerCase() === "s" || keyPressed === "ArrowDown") && !goingUp) {
+                direction = { x: 0, y: 1 };
+                changingDirection = true;
+            } else if ((keyPressed.toLowerCase() === "a" || keyPressed === "ArrowLeft") && !goingRight) {
+                direction = { x: -1, y: 0 };
+                changingDirection = true;
+            } else if ((keyPressed.toLowerCase() === "d" || keyPressed === "ArrowRight") && !goingLeft) {
+                direction = { x: 1, y: 0 };
+                changingDirection = true;
+            }
+        }
+        
+        // --- Initial Setup ---
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', showSettings);
+        document.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('resize', () => {
+            if (gameArea.style.display === 'block') {
+                startGame();
+            }
+        });
+        
+        showSettings(); // Show settings on page load
+    </script>
+</body>
+</html>
